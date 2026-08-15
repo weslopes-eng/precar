@@ -80,10 +80,15 @@ code { font-size: 0.85em; }
 .ghost, .bar-actions button {
   border: 1px solid var(--line);
   background: #fff;
+  color: var(--ink);
   border-radius: 999px;
   padding: 8px 14px;
 }
-.bar-actions .primary { border: 0; }
+.bar-actions .primary {
+  border: 0;
+  background: var(--terra);
+  color: #fff;
+}
 
 .tools {
   display: flex;
