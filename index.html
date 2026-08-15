@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#F3EEE4">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Precar — o preço antes do carro. Digite quanto pode investir e veja os modelos que cabem na faixa.">
+  <meta property="og:title" content="Precar — o preço antes do carro">
+  <meta property="og:description" content="Digite um valor. Compare os modelos que cabem — e os que valem esticar.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Precar">
+  <title>Precar — o preço antes do carro</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,520;0,9..144,600;1,9..144,500&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Ir para o conteúdo</a>
+
+  <header class="dock" id="topbar" hidden>
+    <div class="dock-inner">
+      <a class="brand" href="#/" aria-label="Precar, voltar ao início">
+        <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M6 22h20M8 16.5h16M12 11h8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>
+        <span>pre<b>car</b></span>
+      </a>
+      <form class="float-search" id="float-search">
+        <label class="sr" for="float-input">Novo valor</label>
+        <span class="prefix">R$</span>
+        <input id="float-input" inputmode="decimal" autocomplete="off" enterkeyhint="search" placeholder="Digite aqui o valor">
+        <button type="submit">Buscar</button>
+      </form>
+      <button class="ghost share-btn" id="share-page" type="button" aria-label="Compartilhar esta busca">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 8.5a3 3 0 1 0-2.7-4.2L8.2 6.6a3 3 0 1 0 0 3.8l4.1 2.3a3 3 0 1 0 .9-1.6L9.1 8.8a3.1 3.1 0 0 0 0-1.6l4.1-2.3c.4.4.9.6 1.5.6Z" fill="currentColor"/></svg>
+        <span>Compartilhar</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="home" id="home">
+      <h1>pre<b>car</b></h1>
+      <p class="eyebrow">O preço antes do carro</p>
+      <form class="search" id="home-search">
+        <label class="sr" for="home-input">Valor em reais</label>
+        <div class="field">
+          <span class="prefix">R$</span>
+          <input id="home-input" inputmode="decimal" autocomplete="off" enterkeyhint="search" placeholder="Digite aqui o valor" autofocus>
+          <button class="go" type="submit" aria-label="Buscar carros">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Zm9 2.5-4.2-4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <p class="hint">Enter para buscar · mostramos a faixa de ±15%</p>
+      </form>
+      <div class="chips" id="chips">
+        <button type="button" data-value="50000">R$ 50 mil</button>
+        <button type="button" data-value="80000">R$ 80 mil</button>
+        <button type="button" data-value="120000">R$ 120 mil</button>
+        <button type="button" data-value="180000">R$ 180 mil</button>
+      </div>
+    </section>
+
+    <section class="results" id="results" hidden>
+      <div class="summary">
+        <h2 id="summary-title">Com este valor</h2>
+        <p id="summary-range"></p>
+      </div>
+      <div class="toolbar">
+        <div class="filters" id="filters" aria-label="Filtros">
+          <button type="button" data-filter="all" class="is-on">Todos</button>
+          <button type="button" data-filter="0km">0 km</button>
+          <button type="button" data-filter="seminovo">Seminovo</button>
+          <button type="button" class="soon" disabled>Marca</button>
+          <button type="button" class="soon" disabled>Cor</button>
+          <button type="button" class="soon" disabled>Tipo</button>
+        </div>
+        <label class="sort">
+          <span>Organizar</span>
+          <select id="sort" aria-label="Organizar resultados">
+            <option value="match">Mais perto do valor</option>
+            <option value="price-asc">Menor preço</option>
+            <option value="price-desc">Maior preço</option>
+            <option value="econ">Mais econômico</option>
+            <option value="power">Mais potente</option>
+          </select>
+        </label>
+      </div>
+      <nav class="tabs" id="tabs" aria-label="Faixas de preço">
+        <button type="button" data-col="mid" class="is-on">No seu valor <span>0</span></button>
+        <button type="button" data-col="below">Um pouco menos <span>0</span></button>
+        <button type="button" data-col="above">Vale esticar <span>0</span></button>
+      </nav>
+      <div class="board" id="board"></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Protótipo Precar · preços de referência, ago/2026 · a busca vem primeiro</p>
+  </footer>
+
+  <dialog class="sheet" id="sheet">
+    <article id="sheet-body"></article>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/cars.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

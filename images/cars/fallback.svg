@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Foto em breve">
+  <rect width="800" height="600" fill="#EBE4D6"/>
+  <rect x="0" y="390" width="800" height="210" fill="#E4DBC8"/>
+  <path d="M170 390c20-70 70-110 160-118h150c70 4 110 40 140 118" fill="#d8cdb8"/>
+  <circle cx="250" cy="392" r="38" fill="#cfc3ae"/>
+  <circle cx="560" cy="392" r="38" fill="#cfc3ae"/>
+  <text x="400" y="470" text-anchor="middle" fill="#8A8074" font-family="Outfit, sans-serif" font-size="20">foto de estúdio em breve</text>
+</svg>
