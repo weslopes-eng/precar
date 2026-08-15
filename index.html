@@ -81,16 +81,24 @@
           <button type="button" class="soon" disabled>Cor</button>
           <button type="button" class="soon" disabled>Tipo</button>
         </div>
-        <label class="sort">
-          <span>Organizar</span>
-          <select id="sort" aria-label="Organizar resultados">
-            <option value="match">Mais perto do valor</option>
-            <option value="price-asc">Menor preço</option>
-            <option value="price-desc">Maior preço</option>
-            <option value="econ">Mais econômico</option>
-            <option value="power">Mais potente</option>
-          </select>
-        </label>
+        <div class="toolbar-right">
+          <label class="city-pick">
+            <span>Cidade</span>
+            <select id="city" aria-label="Cidade para ofertas e IPVA"></select>
+          </label>
+          <button class="ghost locate" id="locate" type="button">Perto de mim</button>
+          <label class="sort">
+            <span>Organizar</span>
+            <select id="sort" aria-label="Organizar resultados">
+              <option value="match">Mais perto do valor</option>
+              <option value="price-asc">Menor preço</option>
+              <option value="price-desc">Maior preço</option>
+              <option value="cost">Menor custo mensal</option>
+              <option value="econ">Mais econômico</option>
+              <option value="power">Mais potente</option>
+            </select>
+          </label>
+        </div>
       </div>
       <nav class="tabs" id="tabs" aria-label="Faixas de preço">
         <button type="button" data-col="mid" class="is-on">No seu valor <span>0</span></button>
@@ -102,15 +110,29 @@
   </main>
 
   <footer class="foot">
-    <p>Protótipo Precar · preços de referência, ago/2026 · a busca vem primeiro</p>
+    <p>Protótipo Precar · preços e custos de referência, ago/2026 · a busca vem primeiro</p>
   </footer>
 
   <dialog class="sheet" id="sheet">
     <article id="sheet-body"></article>
   </dialog>
 
+  <aside class="compare-dock" id="compare-dock" hidden>
+    <div class="compare-dock-inner">
+      <p id="compare-count">0 selecionados</p>
+      <div class="compare-thumbs" id="compare-thumbs"></div>
+      <button type="button" id="compare-go" disabled>Comparar</button>
+      <button type="button" class="ghost" id="compare-clear">Limpar</button>
+    </div>
+  </aside>
+
+  <dialog class="sheet compare-sheet" id="compare-sheet">
+    <article id="compare-body"></article>
+  </dialog>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <script src="js/cities.js"></script>
   <script src="js/cars.js"></script>
   <script src="js/app.js"></script>
 </body>

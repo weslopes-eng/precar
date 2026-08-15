@@ -1,7 +1,11 @@
 (() => {
   const CARS = window.PRECAR_CARS;
+  const CITIES = window.PRECAR_CITIES;
   const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
   const number = new Intl.NumberFormat("pt-BR");
+  const KM_MONTH = 1000;
+  const GAS_PRICE = 6.2;
+  const KWH_PRICE = 0.9;
 
   const FINANCE = [
     { name: "Webmotors + Santander", hint: "simular parcela", href: "https://www.webmotors.com.br/financiamento" },
@@ -35,17 +39,35 @@
     floatForm: document.getElementById("float-search"),
     floatInput: document.getElementById("float-input"),
     sort: document.getElementById("sort"),
+    city: document.getElementById("city"),
+    locate: document.getElementById("locate"),
     sheet: document.getElementById("sheet"),
     sheetBody: document.getElementById("sheet-body"),
     toast: document.getElementById("toast"),
+    compareDock: document.getElementById("compare-dock"),
+    compareCount: document.getElementById("compare-count"),
+    compareThumbs: document.getElementById("compare-thumbs"),
+    compareGo: document.getElementById("compare-go"),
+    compareClear: document.getElementById("compare-clear"),
+    compareSheet: document.getElementById("compare-sheet"),
+    compareBody: document.getElementById("compare-body"),
   };
 
-  const state = { budget: null, col: "mid", filter: "all", sort: "match", photo: 0 };
-  const SORTS = new Set(["match", "price-asc", "price-desc", "econ", "power"]);
+  const state = {
+    budget: null,
+    col: "mid",
+    filter: "all",
+    sort: "match",
+    photo: 0,
+    city: localStorage.getItem("precar-city") || "",
+    compare: JSON.parse(sessionStorage.getItem("precar-compare") || "[]"),
+  };
+  const SORTS = new Set(["match", "price-asc", "price-desc", "cost", "econ", "power"]);
   const SORT_LABEL = {
     match: "Mais perto do valor",
     "price-asc": "Menor preço",
     "price-desc": "Maior preço",
+    cost: "Menor custo mensal",
     econ: "Mais econômico",
     power: "Mais potente",
   };
@@ -112,10 +134,43 @@
     const copy = [...list];
     if (state.sort === "price-asc") copy.sort((a, b) => a.price - b.price);
     else if (state.sort === "price-desc") copy.sort((a, b) => b.price - a.price);
+    else if (state.sort === "cost") copy.sort((a, b) => ownership(a).month - ownership(b).month);
     else if (state.sort === "econ") copy.sort((a, b) => consumeNum(b) - consumeNum(a));
     else if (state.sort === "power") copy.sort((a, b) => powerNum(b) - powerNum(a));
     else copy.sort((a, b) => Math.abs(a.price - budget) - Math.abs(b.price - budget));
     return copy;
+  }
+
+  function currentCity() {
+    return CITIES.find((c) => c.id === state.city) || CITIES[0];
+  }
+
+  function monthlyFuel(car) {
+    if (car.fuel === "Elétrico") return (KM_MONTH / 100) * 12 * KWH_PRICE;
+    const kml = consumeNum(car);
+    if (!kml) return 0;
+    return (KM_MONTH / kml) * GAS_PRICE;
+  }
+
+  function ownership(car) {
+    const rate = currentCity().ipva || 0.04;
+    const ipva = car.price * rate;
+    let ins = 0.05;
+    if (car.body === "suv" || car.body === "picape") ins = 0.06;
+    if (car.price >= 180000) ins += 0.01;
+    if (car.fuel === "Elétrico") ins += 0.005;
+    const insurance = car.price * ins;
+    const fuelMonth = monthlyFuel(car);
+    return {
+      ipva,
+      insurance,
+      fuelMonth,
+      month: ipva / 12 + insurance / 12 + fuelMonth,
+    };
+  }
+
+  function saveCompare() {
+    sessionStorage.setItem("precar-compare", JSON.stringify(state.compare));
   }
 
   function routeTo(budget, carSlug) {
@@ -188,6 +243,8 @@
 
   function offerUrl(car) {
     const kind = car.condition === "0km" ? "carros-novos" : "carros-usados";
+    const city = currentCity();
+    if (city.slug) return `https://www.webmotors.com.br/carros/${city.slug}/${car.wm}`;
     return `https://www.webmotors.com.br/${kind}/estoque/${car.wm}`;
   }
 
@@ -209,8 +266,10 @@
     const badge = car.condition === "0km" ? "0 km" : "Seminovo";
     const badgeCls = car.condition === "0km" ? "new" : "used";
     const month = parcels(car.price).m60;
+    const own = ownership(car);
+    const picked = state.compare.includes(car.slug);
     return `
-      <article class="card" data-slug="${car.slug}">
+      <article class="card ${picked ? "is-picked" : ""}" data-slug="${car.slug}">
         <div class="photo">
           <img src="${car.image}" alt="${car.brand} ${car.model} ${car.year}" width="800" height="600" ${eager ? "" : 'loading="lazy"'} decoding="async" onerror="this.onerror=null;this.src='images/cars/fallback.svg'">
           <span class="badge ${badgeCls}">${badge} · ${car.year}</span>
@@ -219,10 +278,12 @@
         <div class="body">
           <p class="brand-name">${car.brand}</p>
           <h4 class="model">${car.model}</h4>
+          ${car.version ? `<p class="version">${car.version}</p>` : ""}
           <div class="price">
             <strong>${money.format(car.price)}</strong>
             <span class="delta ${d.cls}">${d.text}</span>
           </div>
+          <p class="own"><b>${money.format(own.month)}/mês</b><span>IPVA + seguro + combustível · 1.000 km</span></p>
           <div class="specs">
             <div class="spec"><b>${car.consumption}</b><span>${consumeLabel(car)}</span></div>
             <div class="spec"><b>${car.power}</b><span>potência</span></div>
@@ -232,9 +293,10 @@
             <div class="spec"><b>${money.format(month)}</b><span>60x ilustrativo</span></div>
           </div>
           <div class="actions">
-            <a href="${offerUrl(car)}" target="_blank" rel="noopener noreferrer">Ver ofertas</a>
+            <a href="${offerUrl(car)}" target="_blank" rel="noopener noreferrer">${currentCity().slug ? "Ofertas na cidade" : "Ver ofertas"}</a>
             <button class="more" type="button" data-open="${car.slug}">Detalhe</button>
           </div>
+          <button class="pick ${picked ? "is-on" : ""}" type="button" data-compare="${car.slug}">${picked ? "Na comparação" : "Comparar"}</button>
         </div>
       </article>`;
   }
@@ -301,6 +363,8 @@
   function openSheet(car, budget) {
     const d = deltaLabel(car, budget);
     const pay = parcels(car.price);
+    const own = ownership(car);
+    const city = currentCity();
     els.sheetBody.innerHTML = `
       <div class="gallery">
         <div class="gallery-main">
@@ -320,6 +384,7 @@
           <div>
             <p class="brand-name">${car.brand} · ${car.condition === "0km" ? "0 km" : "Seminovo"} · ${car.year}</p>
             <h3 class="model">${car.model}</h3>
+            ${car.version ? `<p class="version">${car.version}</p>` : ""}
             <div class="price"><strong>${money.format(car.price)}</strong><span class="delta ${d.cls}">${d.text}</span></div>
           </div>
           <button class="close" type="button" aria-label="Fechar">×</button>
@@ -333,6 +398,16 @@
           <div class="spec"><b>${car.body}</b><span>carroceria</span></div>
         </div>
         <div class="finance">
+          <h4>Custo de ter${city.uf ? ` · ${city.uf}` : ""}</h4>
+          <div class="parcels">
+            <div class="parcel"><b>${money.format(own.ipva)}</b><span>IPVA ao ano</span></div>
+            <div class="parcel"><b>${money.format(own.insurance)}</b><span>seguro estimado / ano</span></div>
+            <div class="parcel"><b>${money.format(own.fuelMonth)}</b><span>combustível / mês</span></div>
+            <div class="parcel"><b>${money.format(own.month)}</b><span>total / mês</span></div>
+          </div>
+          <p class="note">Estimativa para 1.000 km/mês. IPVA pela alíquota do estado${city.uf ? ` (${city.uf})` : ""}. Seguro é perfil médio — sua cotação pode ser outra.</p>
+        </div>
+        <div class="finance">
           <h4>Financiar</h4>
           <div class="parcels">
             <div class="parcel"><b>${money.format(pay.m48)}</b><span>48x · 20% de entrada</span></div>
@@ -344,7 +419,7 @@
           </div>
         </div>
         <div class="offers">
-          <a href="${offerUrl(car)}" target="_blank" rel="noopener noreferrer">Ver ofertas na Webmotors</a>
+          <a href="${offerUrl(car)}" target="_blank" rel="noopener noreferrer">${city.slug ? `Ver ofertas em ${city.name}` : "Ver ofertas na Webmotors"}</a>
           <a class="alt" href="https://lista.mercadolivre.com.br/${encodeURIComponent(car.brand + " " + car.model)}" target="_blank" rel="noopener noreferrer">Buscar no Mercado Livre</a>
           <button class="ghost" type="button" id="share-car">Compartilhar este carro</button>
         </div>
@@ -357,6 +432,86 @@
     bindGallery(car);
   }
 
+  function fillCities() {
+    els.city.innerHTML = CITIES.map((c) => `<option value="${c.id}">${c.name}${c.uf ? " · " + c.uf : ""}</option>`).join("");
+    els.city.value = state.city;
+  }
+
+  function updateCompareDock() {
+    const cars = state.compare.map((slug) => CARS.find((c) => c.slug === slug)).filter(Boolean);
+    els.compareDock.hidden = cars.length === 0;
+    els.compareCount.textContent = cars.length === 1 ? "1 selecionado" : `${cars.length} selecionados`;
+    els.compareThumbs.innerHTML = cars.map((c) => `<img src="${c.image}" alt="${c.model}">`).join("");
+    els.compareGo.disabled = cars.length < 2;
+    els.compareGo.textContent = cars.length < 2 ? "Comparar" : `Comparar ${cars.length}`;
+  }
+
+  function toggleCompare(slug) {
+    const i = state.compare.indexOf(slug);
+    if (i >= 0) state.compare.splice(i, 1);
+    else if (state.compare.length >= 3) return toast("Compare até 3 carros");
+    else state.compare.push(slug);
+    saveCompare();
+    updateCompareDock();
+    if (state.budget) render();
+  }
+
+  function bestClass(values, value, mode) {
+    const nums = values.filter((v) => Number.isFinite(v));
+    if (!nums.length) return "";
+    const target = mode === "min" ? Math.min(...nums) : Math.max(...nums);
+    return value === target ? "best" : "";
+  }
+
+  function openCompare() {
+    const cars = state.compare.map((slug) => CARS.find((c) => c.slug === slug)).filter(Boolean);
+    if (cars.length < 2) return;
+    const owns = cars.map(ownership);
+    const fuels = cars.map(consumeNum);
+    const powers = cars.map(powerNum);
+    const prices = cars.map((c) => c.price);
+    const months = owns.map((o) => o.month);
+    const trunks = cars.map((c) => Number(String(c.trunk).replace(/\D/g, "")) || 0);
+    const row = (label, cells) => `<tr><th>${label}</th>${cells}</tr>`;
+    els.compareBody.innerHTML = `
+      <div class="compare-head">
+        <h3 class="model">Compare estes ${cars.length}</h3>
+        <button class="close" type="button" aria-label="Fechar">×</button>
+      </div>
+      <div class="compare-table-wrap">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th></th>
+              ${cars.map((c) => `<th>
+                <img src="${c.image}" alt="">
+                ${c.brand}<br>${c.model}
+                ${c.version ? `<div class="version">${c.version}</div>` : ""}
+              </th>`).join("")}
+            </tr>
+          </thead>
+          <tbody>
+            ${row("Preço", cars.map((c, i) => `<td class="${bestClass(prices, c.price, "min")}">${money.format(c.price)}</td>`).join(""))}
+            ${row("Condição", cars.map((c) => `<td>${c.condition === "0km" ? "0 km" : "Seminovo"} · ${c.year}</td>`).join(""))}
+            ${row("Versão", cars.map((c) => `<td>${c.version || "—"}</td>`).join(""))}
+            ${row("Custo / mês", owns.map((o) => `<td class="${bestClass(months, o.month, "min")}">${money.format(o.month)}</td>`).join(""))}
+            ${row("IPVA / ano", owns.map((o) => `<td>${money.format(o.ipva)}</td>`).join(""))}
+            ${row("Seguro / ano", owns.map((o) => `<td>${money.format(o.insurance)}</td>`).join(""))}
+            ${row("Combustível / mês", owns.map((o) => `<td>${money.format(o.fuelMonth)}</td>`).join(""))}
+            ${row("Consumo", cars.map((c, i) => `<td class="${c.fuel === "Elétrico" ? "" : bestClass(fuels, fuels[i], "max")}">${c.consumption} <small>${consumeLabel(c)}</small></td>`).join(""))}
+            ${row("Potência", cars.map((c, i) => `<td class="${bestClass(powers, powers[i], "max")}">${c.power}</td>`).join(""))}
+            ${row("Porta-malas", cars.map((c, i) => `<td class="${bestClass(trunks, trunks[i], "max")}">${c.trunk}</td>`).join(""))}
+            ${row("Câmbio", cars.map((c) => `<td>${c.transmission}</td>`).join(""))}
+            ${row("Combustível", cars.map((c) => `<td>${c.fuel}</td>`).join(""))}
+            ${row("Carroceria", cars.map((c) => `<td>${c.body}</td>`).join(""))}
+            ${row("Ofertas", cars.map((c) => `<td><a href="${offerUrl(c)}" target="_blank" rel="noopener noreferrer">${currentCity().slug ? currentCity().name : "Ver ofertas"}</a></td>`).join(""))}
+          </tbody>
+        </table>
+      </div>`;
+    if (!els.compareSheet.open) els.compareSheet.showModal();
+    els.compareSheet.querySelector(".close").onclick = () => els.compareSheet.close();
+  }
+
   function render() {
     const route = readRoute();
     state.filter = readFilter();
@@ -367,6 +522,7 @@
       els.home.hidden = false;
       els.results.hidden = true;
       els.topbar.hidden = true;
+      els.compareDock.hidden = true;
       document.title = "Precar — o preço antes do carro";
       return;
     }
@@ -382,6 +538,7 @@
     els.topbar.hidden = false;
     els.floatInput.value = formatInput(route.budget);
     els.sort.value = state.sort;
+    fillCities();
     els.summaryTitle.textContent = `Com ${money.format(route.budget)} você alcança estes modelos`;
     els.summaryRange.textContent = `Faixa de ${money.format(lo)} a ${money.format(hi)} · ±15% · ${cars.length} opções`;
     document.title = `Carros em ${money.format(route.budget)} · Precar`;
@@ -425,6 +582,7 @@
     } else if (els.sheet.open) {
       els.sheet.close();
     }
+    updateCompareDock();
   }
 
   function bindInput(input) {
@@ -486,7 +644,47 @@
     const more = e.target.closest("[data-open]");
     if (more) {
       routeTo(state.budget, more.dataset.open);
+      return;
     }
+    const cmp = e.target.closest("[data-compare]");
+    if (cmp) toggleCompare(cmp.dataset.compare);
+  });
+
+  els.city.addEventListener("change", () => {
+    state.city = els.city.value;
+    localStorage.setItem("precar-city", state.city);
+    if (state.budget) render();
+  });
+
+  els.locate.addEventListener("click", () => {
+    if (!navigator.geolocation) return toast("Seu navegador não informa localização");
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        const url = `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`;
+        const data = await fetch(url, { headers: { Accept: "application/json" } }).then((r) => r.json());
+        const raw = `${data.address.city || ""} ${data.address.town || ""} ${data.address.municipality || ""} ${data.address.state || ""}`.toLowerCase();
+        const fold = (s) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const city = CITIES.find((c) => c.id && fold(raw).includes(fold(c.name)));
+        if (!city) return toast("Não achei sua cidade na lista. Escolha no menu.");
+        state.city = city.id;
+        localStorage.setItem("precar-city", city.id);
+        toast(`Ofertas em ${city.name}`);
+        if (state.budget) render();
+      } catch {
+        toast("Não deu para localizar. Escolha a cidade.");
+      }
+    }, () => toast("Permissão de localização negada"), { timeout: 8000 });
+  });
+
+  els.compareGo.addEventListener("click", openCompare);
+  els.compareClear.addEventListener("click", () => {
+    state.compare = [];
+    saveCompare();
+    updateCompareDock();
+    if (state.budget) render();
+  });
+  els.compareSheet.addEventListener("click", (e) => {
+    if (e.target === els.compareSheet) els.compareSheet.close();
   });
 
   els.sharePage.addEventListener("click", () => {

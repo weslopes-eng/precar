@@ -9,3 +9,5 @@ desktop.ini
 .env.*
 !.env.example
 node_modules/
+
+.vercel
