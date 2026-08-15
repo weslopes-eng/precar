@@ -1,0 +1,305 @@
+(() => {
+  const cfg = window.PRECAR_SUPABASE || {};
+  const storedKey = localStorage.getItem("precar-anon-key") || "";
+  const anonKey = cfg.anonKey || storedKey;
+  const els = {
+    setup: document.getElementById("setup"),
+    login: document.getElementById("login"),
+    app: document.getElementById("app"),
+    setupKey: document.getElementById("setup-key"),
+    setupSave: document.getElementById("setup-save"),
+    loginForm: document.getElementById("login-form"),
+    loginErr: document.getElementById("login-err"),
+    rows: document.getElementById("rows"),
+    q: document.getElementById("q"),
+    qCond: document.getElementById("q-cond"),
+    drawer: document.getElementById("drawer"),
+    form: document.getElementById("car-form"),
+    formTitle: document.getElementById("form-title"),
+    deleteBtn: document.getElementById("delete-car"),
+    toast: document.getElementById("toast"),
+  };
+
+  const ANGLES = ["front", "side", "rear", "cabin"];
+  let sb = null;
+  let cars = [];
+  let pendingFiles = {};
+
+  function toast(msg) {
+    els.toast.textContent = msg;
+    els.toast.classList.add("on");
+    setTimeout(() => els.toast.classList.remove("on"), 2200);
+  }
+
+  function slugify(brand, model, year) {
+    return `${brand}-${model}-${year}`
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+  }
+
+  function money(n) {
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n);
+  }
+
+  function show(which) {
+    els.setup.hidden = which !== "setup";
+    els.login.hidden = which !== "login";
+    els.app.hidden = which !== "app";
+  }
+
+  async function boot() {
+    if (!cfg.url || !anonKey) {
+      show("setup");
+      return;
+    }
+    sb = window.supabase.createClient(cfg.url, anonKey);
+    const { data } = await sb.auth.getSession();
+    if (data.session) {
+      show("app");
+      await load();
+    } else {
+      show("login");
+    }
+  }
+
+  els.setupSave.onclick = () => {
+    const key = els.setupKey.value.trim();
+    if (!key) return toast("Cole a chave anon");
+    localStorage.setItem("precar-anon-key", key);
+    location.reload();
+  };
+
+  els.loginForm.onsubmit = async (e) => {
+    e.preventDefault();
+    els.loginErr.textContent = "";
+    const { error } = await sb.auth.signInWithPassword({
+      email: document.getElementById("email").value.trim(),
+      password: document.getElementById("password").value,
+    });
+    if (error) {
+      els.loginErr.textContent = error.message;
+      return;
+    }
+    show("app");
+    await load();
+  };
+
+  document.getElementById("logout").onclick = async () => {
+    await sb.auth.signOut();
+    show("login");
+  };
+
+  async function load() {
+    const { data, error } = await sb.from("cars").select("*").order("price");
+    if (error) {
+      toast(error.message);
+      cars = [];
+    } else {
+      cars = data || [];
+    }
+    render();
+  }
+
+  function filtered() {
+    const q = els.q.value.trim().toLowerCase();
+    const cond = els.qCond.value;
+    return cars.filter((c) => {
+      if (cond && c.condition !== cond) return false;
+      if (!q) return true;
+      return `${c.brand} ${c.model} ${c.version} ${c.slug}`.toLowerCase().includes(q);
+    });
+  }
+
+  function render() {
+    const list = filtered();
+    els.rows.innerHTML = list.map((c) => `
+      <tr>
+        <td>${c.image ? `<img src="${c.image}" alt="">` : ""}</td>
+        <td><strong>${c.brand} ${c.model}</strong><br><span style="color:#8a8074">${c.version || ""}</span></td>
+        <td>${c.year}</td>
+        <td>${money(c.price)}</td>
+        <td class="${c.published ? "on" : "off"}">${c.published ? "No ar" : "Rascunho"}</td>
+        <td class="row-actions">
+          <button type="button" data-edit="${c.id}">Editar</button>
+        </td>
+      </tr>`).join("") || `<tr><td colspan="6">Nenhum carro ainda. Importe o catálogo ou crie o primeiro.</td></tr>`;
+  }
+
+  els.q.oninput = render;
+  els.qCond.onchange = render;
+
+  function fillForm(car) {
+    pendingFiles = {};
+    const f = els.form;
+    f.reset();
+    ANGLES.forEach((a) => {
+      const img = f.querySelector(`[data-preview="${a}"]`);
+      img.removeAttribute("src");
+    });
+    if (!car) {
+      els.formTitle.textContent = "Novo carro";
+      els.deleteBtn.hidden = true;
+      f.published.checked = true;
+      return;
+    }
+    els.formTitle.textContent = `${car.brand} ${car.model}`;
+    els.deleteBtn.hidden = false;
+    ["id", "brand", "model", "version", "year", "condition", "price", "body", "fuel", "transmission", "power", "consumption", "trunk", "slug", "wm"].forEach((k) => {
+      if (f[k] != null) f[k].value = car[k] ?? "";
+    });
+    f.published.checked = !!car.published;
+    const photos = car.photos || {};
+    ANGLES.forEach((a) => {
+      const src = photos[a] || (a === "front" ? car.image : "");
+      if (src) f.querySelector(`[data-preview="${a}"]`).src = src;
+    });
+  }
+
+  document.getElementById("new-car").onclick = () => {
+    fillForm(null);
+    els.drawer.showModal();
+  };
+
+  document.getElementById("close-drawer").onclick = () => els.drawer.close();
+  els.drawer.addEventListener("click", (e) => {
+    if (e.target === els.drawer) els.drawer.close();
+  });
+
+  els.rows.onclick = (e) => {
+    const btn = e.target.closest("[data-edit]");
+    if (!btn) return;
+    const car = cars.find((c) => c.id === btn.dataset.edit);
+    if (car) {
+      fillForm(car);
+      els.drawer.showModal();
+    }
+  };
+
+  els.form.brand.addEventListener("input", syncSlug);
+  els.form.model.addEventListener("input", syncSlug);
+  els.form.year.addEventListener("input", syncSlug);
+
+  function syncSlug() {
+    if (els.form.id.value) return;
+    els.form.slug.value = slugify(els.form.brand.value, els.form.model.value, els.form.year.value);
+    if (els.form.brand.value && els.form.model.value) {
+      els.form.wm.value = `${slugify(els.form.brand.value, "", "").replace(/-$/, "")}/${slugify(els.form.model.value, "", "").replace(/^-/, "")}`;
+    }
+  }
+
+  els.form.querySelectorAll("[data-angle]").forEach((input) => {
+    input.onchange = () => {
+      const file = input.files[0];
+      if (!file) return;
+      pendingFiles[input.dataset.angle] = file;
+      const img = els.form.querySelector(`[data-preview="${input.dataset.angle}"]`);
+      img.src = URL.createObjectURL(file);
+    };
+  });
+
+  async function uploadPhotos(slug) {
+    const photos = {};
+    for (const angle of ANGLES) {
+      const file = pendingFiles[angle];
+      if (!file) continue;
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `${slug}/${angle}-${Date.now()}.${ext}`;
+      const { error } = await sb.storage.from("cars").upload(path, file, { upsert: true, contentType: file.type });
+      if (error) throw error;
+      const { data } = sb.storage.from("cars").getPublicUrl(path);
+      photos[angle] = data.publicUrl;
+    }
+    return photos;
+  }
+
+  els.form.onsubmit = async (e) => {
+    e.preventDefault();
+    const f = els.form;
+    const slug = f.slug.value.trim();
+    try {
+      const uploaded = await uploadPhotos(slug);
+      const existing = cars.find((c) => c.id === f.id.value);
+      const photos = { ...(existing?.photos || {}), ...uploaded };
+      const image = photos.front || existing?.image || null;
+      const row = {
+        slug,
+        brand: f.brand.value.trim(),
+        model: f.model.value.trim(),
+        version: f.version.value.trim(),
+        year: f.year.value.trim(),
+        condition: f.condition.value,
+        price: Number(f.price.value),
+        body: f.body.value,
+        fuel: f.fuel.value,
+        transmission: f.transmission.value,
+        power: f.power.value.trim(),
+        consumption: f.consumption.value.trim(),
+        trunk: f.trunk.value.trim(),
+        wm: f.wm.value.trim(),
+        image,
+        photos,
+        published: f.published.checked,
+      };
+      let error;
+      if (f.id.value) {
+        ({ error } = await sb.from("cars").update(row).eq("id", f.id.value));
+      } else {
+        ({ error } = await sb.from("cars").insert(row));
+      }
+      if (error) throw error;
+      toast("Salvo");
+      els.drawer.close();
+      await load();
+    } catch (err) {
+      toast(err.message || "Não deu para salvar");
+    }
+  };
+
+  els.deleteBtn.onclick = async () => {
+    const id = els.form.id.value;
+    if (!id || !confirm("Excluir este carro do catálogo?")) return;
+    const { error } = await sb.from("cars").delete().eq("id", id);
+    if (error) return toast(error.message);
+    toast("Excluído");
+    els.drawer.close();
+    await load();
+  };
+
+  document.getElementById("import-local").onclick = async () => {
+    const local = window.PRECAR_CARS || [];
+    if (!local.length) return toast("Catálogo local vazio");
+    if (!confirm(`Importar ${local.length} carros do protótipo? Os que já tiverem o mesmo slug são ignorados.`)) return;
+    const existing = new Set(cars.map((c) => c.slug));
+    const rows = local
+      .filter((c) => !existing.has(c.slug))
+      .map((c) => ({
+        slug: c.slug,
+        brand: c.brand,
+        model: c.model,
+        version: c.version || "",
+        year: String(c.year),
+        condition: c.condition,
+        price: c.price,
+        body: c.body,
+        fuel: c.fuel,
+        transmission: c.transmission,
+        power: c.power,
+        consumption: c.consumption,
+        trunk: c.trunk,
+        wm: c.wm,
+        image: c.image,
+        photos: { front: c.image },
+        published: true,
+      }));
+    if (!rows.length) return toast("Nada novo para importar");
+    const { error } = await sb.from("cars").insert(rows);
+    if (error) return toast(error.message);
+    toast(`${rows.length} carros importados`);
+    await load();
+  };
+
+  boot();
+})();

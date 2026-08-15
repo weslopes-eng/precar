@@ -1,5 +1,5 @@
 (() => {
-  const CARS = window.PRECAR_CARS;
+  let CARS = window.PRECAR_CARS;
   const CITIES = window.PRECAR_CITIES;
   const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
   const number = new Intl.NumberFormat("pt-BR");
@@ -16,12 +16,36 @@
     { name: "Banco Pan", hint: "entrada flexível", href: "https://www.bancopan.com.br/financiamento-de-veiculos" },
   ];
 
-  const ANGLES = [
-    { id: "front", label: "3/4 frente", ready: true },
-    { id: "side", label: "Lateral", ready: false },
-    { id: "rear", label: "Traseira", ready: false },
-    { id: "cabin", label: "Interior", ready: false },
-  ];
+  function carAngles(car) {
+    const photos = car.photos || {};
+    return [
+      { id: "front", label: "3/4 frente", src: photos.front || car.image, ready: !!(photos.front || car.image) },
+      { id: "side", label: "Lateral", src: photos.side, ready: !!photos.side },
+      { id: "rear", label: "Traseira", src: photos.rear, ready: !!photos.rear },
+      { id: "cabin", label: "Interior", src: photos.cabin, ready: !!photos.cabin },
+    ];
+  }
+
+  function mapRemoteCar(row) {
+    return {
+      ...row,
+      photos: row.photos || {},
+      image: row.image || (row.photos && row.photos.front) || "",
+    };
+  }
+
+  async function loadRemoteCars() {
+    const cfg = window.PRECAR_SUPABASE || {};
+    const key = cfg.anonKey || localStorage.getItem("precar-anon-key") || "";
+    if (!cfg.url || !key || !window.supabase) return;
+    try {
+      const sb = window.supabase.createClient(cfg.url, key);
+      const { data, error } = await sb.from("cars").select("*").eq("published", true).order("price");
+      if (!error && data && data.length) CARS = data.map(mapRemoteCar);
+    } catch (_) {
+      /* fica o catálogo local */
+    }
+  }
 
   const els = {
     home: document.getElementById("home"),
@@ -349,10 +373,11 @@
     const stage = els.sheet.querySelector("[data-stage]");
     const tag = els.sheet.querySelector("[data-soon]");
     const thumbs = [...els.sheet.querySelectorAll("[data-angle]")];
+    const angles = carAngles(car);
     const show = (index) => {
       state.photo = index;
-      const angle = ANGLES[index];
-      stage.src = car.image;
+      const angle = angles[index];
+      stage.src = angle.src || car.image || "images/cars/fallback.svg";
       stage.alt = `${car.brand} ${car.model} — ${angle.label}`;
       tag.hidden = angle.ready;
       tag.textContent = angle.ready ? "" : `${angle.label} · foto real em breve`;
@@ -376,9 +401,9 @@
           <span class="soon-tag" data-soon hidden></span>
         </div>
         <div class="thumbs">
-          ${ANGLES.map((a, i) => `
+          ${carAngles(car).map((a, i) => `
             <button type="button" data-angle="${i}" class="${i === 0 ? "is-on" : ""}" aria-label="${a.label}">
-              <img src="${car.image}" alt="">
+              <img src="${a.src || car.image || "images/cars/fallback.svg"}" alt="">
               <span>${a.label}</span>
             </button>`).join("")}
         </div>
@@ -724,5 +749,5 @@
     if (dx > 50 && i > 0) { state.col = order[i - 1]; render(); }
   }, { passive: true });
 
-  render();
+  loadRemoteCars().then(render);
 })();

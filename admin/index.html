@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#F3EEE4">
+  <title>Admin · Precar</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,520;9..144,600&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <section class="gate" id="setup" hidden>
+    <h1>pre<b>car</b></h1>
+    <p>Falta a chave anônima do Supabase. Cole abaixo (Settings → API → <code>anon</code> <code>public</code>). Ela é pública por desenho; a segurança fica no login e nas regras.</p>
+    <label>anon key<textarea id="setup-key" rows="4" placeholder="eyJhbGciOi..."></textarea></label>
+    <button type="button" id="setup-save">Salvar neste navegador</button>
+    <p class="hint">Depois rode <code>supabase/schema.sql</code> no SQL Editor e crie um usuário em Authentication → Users.</p>
+  </section>
+
+  <section class="gate" id="login" hidden>
+    <h1>pre<b>car</b></h1>
+    <p>Entrar no painel</p>
+    <form id="login-form">
+      <label>E-mail<input type="email" id="email" required autocomplete="username"></label>
+      <label>Senha<input type="password" id="password" required autocomplete="current-password"></label>
+      <button type="submit">Entrar</button>
+    </form>
+    <p class="err" id="login-err"></p>
+  </section>
+
+  <div class="app" id="app" hidden>
+    <header class="bar">
+      <a class="brand" href="../">pre<b>car</b></a>
+      <h1>Catálogo</h1>
+      <div class="bar-actions">
+        <button type="button" id="import-local">Trazer catálogo atual</button>
+        <button type="button" class="primary" id="new-car">Novo carro</button>
+        <button type="button" class="ghost" id="logout">Sair</button>
+      </div>
+    </header>
+
+    <div class="tools">
+      <input id="q" type="search" placeholder="Buscar marca, modelo, versão">
+      <select id="q-cond">
+        <option value="">Todos</option>
+        <option value="0km">0 km</option>
+        <option value="seminovo">Seminovo</option>
+      </select>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Carro</th>
+            <th>Ano</th>
+            <th>Preço</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <dialog class="drawer" id="drawer">
+    <form id="car-form">
+      <header>
+        <h2 id="form-title">Novo carro</h2>
+        <button type="button" class="close" id="close-drawer" aria-label="Fechar">×</button>
+      </header>
+      <input type="hidden" name="id">
+      <div class="grid">
+        <label>Marca<input name="brand" required></label>
+        <label>Modelo<input name="model" required></label>
+        <label>Versão<input name="version" placeholder="Sense 1.0"></label>
+        <label>Ano<input name="year" required placeholder="2026"></label>
+        <label>Condição
+          <select name="condition" required>
+            <option value="0km">0 km</option>
+            <option value="seminovo">Seminovo</option>
+          </select>
+        </label>
+        <label>Preço (R$)<input name="price" type="number" min="1" required></label>
+        <label>Carroceria
+          <select name="body">
+            <option>hatch</option>
+            <option>sedã</option>
+            <option>suv</option>
+            <option>picape</option>
+          </select>
+        </label>
+        <label>Combustível
+          <select name="fuel">
+            <option>Flex</option>
+            <option>Híbrido</option>
+            <option>Elétrico</option>
+            <option>Gasolina</option>
+            <option>Diesel</option>
+          </select>
+        </label>
+        <label>Câmbio
+          <select name="transmission">
+            <option>Manual</option>
+            <option>Automático</option>
+          </select>
+        </label>
+        <label>Potência<input name="power" placeholder="116 cv"></label>
+        <label>Consumo<input name="consumption" placeholder="13,6 ou 280 km"></label>
+        <label>Porta-malas<input name="trunk" placeholder="300 L"></label>
+        <label>Slug<input name="slug" required placeholder="hyundai-hb20"></label>
+        <label>Webmotors<input name="wm" placeholder="hyundai/hb20"></label>
+        <label class="check"><input type="checkbox" name="published" checked> Publicado no site</label>
+      </div>
+      <h3>Fotos</h3>
+      <div class="photos" id="photos">
+        <label class="shot">3/4 frente<input type="file" accept="image/*" data-angle="front"><img data-preview="front" alt=""></label>
+        <label class="shot">Lateral<input type="file" accept="image/*" data-angle="side"><img data-preview="side" alt=""></label>
+        <label class="shot">Traseira<input type="file" accept="image/*" data-angle="rear"><img data-preview="rear" alt=""></label>
+        <label class="shot">Interior<input type="file" accept="image/*" data-angle="cabin"><img data-preview="cabin" alt=""></label>
+      </div>
+      <footer>
+        <button type="button" class="danger" id="delete-car" hidden>Excluir</button>
+        <button type="submit" class="primary">Salvar</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/cars.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
