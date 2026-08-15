@@ -51,17 +51,28 @@
   }
 
   async function boot() {
-    if (!cfg.url || !anonKey) {
-      show("setup");
-      return;
-    }
-    sb = window.supabase.createClient(cfg.url, anonKey);
-    const { data } = await sb.auth.getSession();
-    if (data.session) {
-      show("app");
-      await load();
-    } else {
+    try {
+      if (!cfg.url || !anonKey) {
+        show("setup");
+        return;
+      }
+      if (!window.supabase) {
+        show("login");
+        els.loginErr.textContent = "Não carregou a biblioteca do Supabase. Atualize a página.";
+        return;
+      }
+      sb = window.supabase.createClient(cfg.url, anonKey);
+      const { data, error } = await sb.auth.getSession();
+      if (error) throw error;
+      if (data.session) {
+        show("app");
+        await load();
+      } else {
+        show("login");
+      }
+    } catch (err) {
       show("login");
+      els.loginErr.textContent = err.message || "Não conectou no Supabase.";
     }
   }
 

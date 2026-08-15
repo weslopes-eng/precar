@@ -6,11 +6,11 @@
   <meta name="robots" content="noindex,nofollow">
   <meta name="theme-color" content="#F3EEE4">
   <title>Admin · Precar</title>
-  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,520;9..144,600&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="/admin/admin.css">
 </head>
 <body>
   <section class="gate" id="setup" hidden>
@@ -21,7 +21,7 @@
     <p class="hint">Depois rode <code>supabase/schema.sql</code> no SQL Editor e crie um usuário em Authentication → Users.</p>
   </section>
 
-  <section class="gate" id="login" hidden>
+  <section class="gate" id="login">
     <h1>pre<b>car</b></h1>
     <p>Entrar no painel</p>
     <form id="login-form">
@@ -135,8 +135,8 @@
   <div class="toast" id="toast"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="../js/supabase-config.js"></script>
-  <script src="../js/cars.js"></script>
-  <script src="admin.js"></script>
+  <script src="/js/supabase-config.js"></script>
+  <script src="/js/cars.js"></script>
+  <script src="/admin/admin.js"></script>
 </body>
 </html>
