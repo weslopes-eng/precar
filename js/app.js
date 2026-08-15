@@ -276,12 +276,16 @@
           <button class="share-mini" type="button" data-share="${car.slug}" aria-label="Compartilhar ${car.model}">${SHARE}</button>
         </div>
         <div class="body">
-          <p class="brand-name">${car.brand}</p>
-          <h4 class="model">${car.model}</h4>
-          ${car.version ? `<p class="version">${car.version}</p>` : ""}
-          <div class="price">
-            <strong>${money.format(car.price)}</strong>
-            <span class="delta ${d.cls}">${d.text}</span>
+          <div class="card-top">
+            <div>
+              <p class="brand-name">${car.brand}</p>
+              <h4 class="model">${car.model}</h4>
+              ${car.version ? `<p class="version">${car.version}</p>` : ""}
+            </div>
+            <div class="price-spot">
+              <strong>${money.format(car.price)}</strong>
+              <span class="delta ${d.cls}">${d.text}</span>
+            </div>
           </div>
           <p class="own"><b>${money.format(own.month)}/mês</b><span>IPVA + seguro + combustível · 1.000 km</span></p>
           <div class="specs">

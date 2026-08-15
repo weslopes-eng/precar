@@ -417,6 +417,13 @@ a { color: inherit; }
 .share-mini svg { width: 16px; height: 16px; }
 
 .body { padding: 14px 16px 16px; }
+.card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
 .brand-name {
   margin: 0;
   color: var(--ink-3);
@@ -425,7 +432,7 @@ a { color: inherit; }
   text-transform: uppercase;
 }
 .model {
-  margin: 2px 0 8px;
+  margin: 2px 0 4px;
   font-size: 1.28rem;
   letter-spacing: -0.03em;
   font-weight: 600;
@@ -438,11 +445,33 @@ a { color: inherit; }
   margin-bottom: 12px;
 }
 .price strong { font-size: 1.05rem; }
+.price-spot {
+  flex-shrink: 0;
+  min-width: 7.6rem;
+  text-align: center;
+  background: var(--terra);
+  color: #fff;
+  border-radius: 999px;
+  padding: 10px 14px 8px;
+  box-shadow: 0 8px 18px rgba(196, 92, 62, 0.28);
+}
+.price-spot strong {
+  display: block;
+  font-size: 1.05rem;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.price-spot .delta {
+  display: block;
+  margin-top: 3px;
+  color: #f6d9d0;
+  font-size: 0.68rem;
+}
 .delta { font-size: 0.8rem; color: var(--sage); }
 .delta.up { color: var(--terra); }
 .delta.eq { color: var(--ink-2); }
 .version {
-  margin: -6px 0 8px;
+  margin: 0;
   color: var(--ink-3);
   font-size: 0.82rem;
 }
