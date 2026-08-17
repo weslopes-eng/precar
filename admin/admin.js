@@ -354,7 +354,7 @@
   }
 
   function rowsFromSheet(sheet) {
-    const grid = window.XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
+    const grid = window.XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: true });
     let headerIdx = grid.findIndex(isHeaderRow);
     if (headerIdx < 0) headerIdx = 0;
     const headers = grid[headerIdx] || [];
@@ -372,12 +372,23 @@
 
   function parsePrice(raw) {
     if (raw == null || raw === "") return 0;
-    let s = String(raw).replace(/r\$/gi, "").trim();
-    if (s.includes(",") && s.includes(".")) s = s.replace(/\./g, "").replace(",", ".");
-    else if (s.includes(",")) s = s.replace(",", ".");
-    else s = s.replace(/\./g, "");
+    if (typeof raw === "number" && Number.isFinite(raw)) {
+      return raw > 0 ? Math.round(raw) : 0;
+    }
+    let s = String(raw).replace(/r\$/gi, "").replace(/\s/g, "").trim();
+    if (!s) return 0;
+    if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) {
+      s = s.replace(/\./g, "").replace(",", ".");
+    } else if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) {
+      s = s.replace(/,/g, "");
+    } else if (s.includes(",") && !s.includes(".")) {
+      s = s.replace(",", ".");
+    } else {
+      s = s.replace(/\./g, "");
+    }
     const n = Number(s);
-    return Number.isFinite(n) ? Math.round(n) : 0;
+    if (!Number.isFinite(n) || n <= 0 || n > 99999999999) return 0;
+    return Math.round(n);
   }
 
   function parseCondition(raw) {
