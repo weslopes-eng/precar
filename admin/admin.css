@@ -167,6 +167,23 @@ td img { width: 64px; height: 44px; object-fit: cover; border-radius: 8px; backg
 }
 .danger { border: 1px solid #c45c3e; background: transparent; color: #c45c3e; border-radius: 999px; padding: 8px 14px; margin-right: auto; }
 
+.import-drawer { width: min(920px, 100%); padding-bottom: 16px; }
+.import-drawer header { padding: 14px 18px 0; display: flex; justify-content: space-between; align-items: center; }
+.import-drawer h2 { margin: 0; font-size: 1.2rem; }
+.import-summary { padding: 0 18px; color: var(--ink-2); font-size: 0.9rem; }
+.import-preview { max-height: 50vh; }
+.import-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 0 18px 8px;
+}
+.import-actions .ghost { text-decoration: none; }
+.st-ok { color: #5c7056; }
+.st-skip { color: var(--ink-3); }
+.st-err { color: #a34830; }
+
 .toast {
   position: fixed;
   left: 50%;

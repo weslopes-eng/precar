@@ -37,6 +37,8 @@
       <a class="brand" href="../">pre<b>car</b></a>
       <h1>Catálogo</h1>
       <div class="bar-actions">
+        <button type="button" id="import-sheet">Importar planilha</button>
+        <input id="sheet-file" type="file" accept=".csv,.xlsx,.xls" hidden>
         <button type="button" id="import-local">Trazer catálogo atual</button>
         <button type="button" class="primary" id="new-car">Novo carro</button>
         <button type="button" class="ghost" id="logout">Sair</button>
@@ -132,8 +134,35 @@
     </form>
   </dialog>
 
+  <dialog class="drawer import-drawer" id="import-drawer">
+    <header>
+      <h2>Importar planilha</h2>
+      <button type="button" class="close" id="close-import" aria-label="Fechar">×</button>
+    </header>
+    <p class="import-summary" id="import-summary"></p>
+    <div class="table-wrap import-preview">
+      <table>
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Carro</th>
+            <th>Ano</th>
+            <th>Preço</th>
+            <th>Obs.</th>
+          </tr>
+        </thead>
+        <tbody id="import-rows"></tbody>
+      </table>
+    </div>
+    <footer class="import-actions">
+      <a class="ghost" href="/admin/modelo-importacao.csv" download>Baixar modelo</a>
+      <button type="button" class="primary" id="import-confirm">Gravar novos</button>
+    </footer>
+  </dialog>
+
   <div class="toast" id="toast"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/js/supabase-config.js"></script>
   <script src="/js/cars.js"></script>
