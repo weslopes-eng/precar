@@ -342,8 +342,32 @@
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
+      .replace(/\(.*?\)/g, "")
+      .replace(/[_/]+/g, " ")
       .trim()
       .replace(/\s+/g, " ");
+  }
+
+  function isHeaderRow(cells) {
+    const keys = cells.map(foldKey);
+    return keys.includes("marca") && (keys.includes("modelo") || keys.includes("model"));
+  }
+
+  function rowsFromSheet(sheet) {
+    const grid = window.XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
+    let headerIdx = grid.findIndex(isHeaderRow);
+    if (headerIdx < 0) headerIdx = 0;
+    const headers = grid[headerIdx] || [];
+    return grid
+      .slice(headerIdx + 1)
+      .filter((r) => r.some((c) => String(c).trim()))
+      .map((r) => {
+        const obj = {};
+        headers.forEach((h, i) => {
+          if (h) obj[h] = r[i];
+        });
+        return obj;
+      });
   }
 
   function parsePrice(raw) {
@@ -463,25 +487,22 @@
   }
 
   async function readSheet(file) {
+    if (!window.XLSX) throw new Error("Biblioteca de planilha não carregou");
     const name = file.name.toLowerCase();
+    let wb;
     if (name.endsWith(".csv")) {
       const text = await file.text();
-      if (!window.XLSX) throw new Error("Biblioteca de planilha não carregou");
-      let wb = window.XLSX.read(text, { type: "string" });
-      let sheet = wb.Sheets[wb.SheetNames[0]];
-      let json = window.XLSX.utils.sheet_to_json(sheet, { defval: "" });
-      if (json.length && Object.keys(json[0]).length === 1) {
+      wb = window.XLSX.read(text, { type: "string" });
+      let rows = rowsFromSheet(wb.Sheets[wb.SheetNames[0]]);
+      if (rows.length && Object.keys(rows[0]).length === 1) {
         wb = window.XLSX.read(text, { type: "string", FS: ";" });
-        sheet = wb.Sheets[wb.SheetNames[0]];
-        json = window.XLSX.utils.sheet_to_json(sheet, { defval: "" });
+        rows = rowsFromSheet(wb.Sheets[wb.SheetNames[0]]);
       }
-      return json;
+      return rows;
     }
     const buf = await file.arrayBuffer();
-    if (!window.XLSX) throw new Error("Biblioteca de planilha não carregou");
-    const wb = window.XLSX.read(buf, { type: "array" });
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    return window.XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    wb = window.XLSX.read(buf, { type: "array" });
+    return rowsFromSheet(wb.Sheets[wb.SheetNames[0]]);
   }
 
   document.getElementById("import-sheet").onclick = () => els.sheetFile.click();
